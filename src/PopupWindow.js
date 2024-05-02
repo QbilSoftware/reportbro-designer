@@ -132,6 +132,17 @@ export default class PopupWindow {
                     autocomplete: 'off'
                 });
                 elSearch.addEventListener('input', (event) => {
+                    const detailsElements = document.querySelectorAll("details");
+                    if (elSearch.value.trim() === "") {
+                        detailsElements.forEach(function (details) {
+                            details.open = false;
+                        });
+                    }
+                    else {
+                        detailsElements.forEach(function (details) {
+                            details.open = true;
+                        });
+                    }
                     this.filterParameters(elSearch.value);
                 });
                 this.elContent.append(elSearch);
@@ -953,10 +964,30 @@ export default class PopupWindow {
                     }
                 }
             }
-
         }
 
     }
+    setDisplayForParentLiElementsById(element,style) {
+        let currentElement = element;
+        while (currentElement) {
+            if (currentElement.tagName.toLowerCase() === 'li') {
+                currentElement.style.display = style;
+            }
+            currentElement = currentElement.parentElement;
+        }
+    }
+
+     setDisplayForParentDetailsElementsById(element) {
+        let currentElement = element;
+        while (currentElement) {
+            if (currentElement.tagName.toLowerCase() === 'details') {
+                currentElement.open = true;
+            }
+            currentElement = currentElement.parentElement;
+        }
+    }
+
+
 }
 
 PopupWindow.type = {

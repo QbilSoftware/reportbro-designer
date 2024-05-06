@@ -1,6 +1,6 @@
 # ReportBro Designer
 
-A javascript plugin to create PDF and XLSX report templates.
+A javascript  plugin to create PDF and XLSX report templates.
 
 ReportBro Designer can be easily integrated into your web application. Everyone can design & edit document templates, and preview them directly in the browser. The reports can be generated with
 [ReportBro Lib](https://github.com/jobsta/reportbro-lib) (a Python package) on the server.

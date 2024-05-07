@@ -178,7 +178,7 @@
     left: 0;
     top: 0;
     width: 230px;
-    background-image: url("rb_logo_white.png");
+    background-image: url("qbil_logo_white.png");
     background-repeat: no-repeat;
     height: 45px;
     background-size: auto 85%;
@@ -188,7 +188,7 @@
 }
 
 .rbroClassicTheme .rbroLogo {
-    background-image: url("rb_logo_dark.png");
+    background-image: url("qbil_logo_white.png");
 }
 
 .rbroToolButtonContainer {
@@ -475,7 +475,7 @@ ul ul .rbroMenuItemText {
 }
 
 .rbroEmptyDetailPanel .rbroLogo {
-    background-image: url("rb_logo_dark.png");
+    background-image: url("qbil_logo_dark.png");
     width: 390px;
     height: 70px;
     background-size: auto 80%;
@@ -1551,4 +1551,10 @@ ul.tree>li::before {
 
 .rbroPopupWindowContentTreeMode .rbroPopupItemSeparator.rbroParameterGroup {
     background-color: white;
+}
+.mooLogoDark {
+    background-image: url("moo_logo_dark.png");
+}
+.mooLogoWhite {
+    background-image: url("moo_logo_white.png");
 }

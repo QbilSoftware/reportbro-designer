@@ -957,6 +957,25 @@ export default class PopupWindow {
         }
 
     }
+    setDisplayForParentLiElementsById(element,style) {
+        let currentElement = element;
+        while (currentElement) {
+            if (currentElement.tagName.toLowerCase() === 'li') {
+                currentElement.style.display = style;
+            }
+            currentElement = currentElement.parentElement;
+        }
+    }
+
+     setDisplayForParentDetailsElementsById(element) {
+        let currentElement = element;
+        while (currentElement) {
+            if (currentElement.tagName.toLowerCase() === 'details') {
+                currentElement.open = true;
+            }
+            currentElement = currentElement.parentElement;
+        }
+    }
 }
 
 PopupWindow.type = {

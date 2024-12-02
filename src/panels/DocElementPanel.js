@@ -6,10 +6,17 @@ import SetValueCmd from '../commands/SetValueCmd';
 import Parameter from '../data/Parameter';
 import Style from '../data/Style';
 import DocElement from '../elements/DocElement';
+import FrameElement from '../elements/FrameElement';
+import ImageElement from '../elements/ImageElement';
+import LineElement from '../elements/LineElement';
+import SectionBandElement from '../elements/SectionBandElement';
+import TableElement from '../elements/TableElement';
+import TableBandElement from '../elements/TableBandElement';
+import TableTextElement from '../elements/TableTextElement';
+import TextElement from '../elements/TextElement';
 import PopupWindow from '../PopupWindow';
 import * as utils from '../utils';
 import Quill from 'quill';
-import Delta from 'quill-delta';
 import autosize from 'autosize';
 
 /**
@@ -32,7 +39,7 @@ export default class DocElementPanel extends PanelBase {
             },
             'richText': {
                 'type': SetValueCmd.type.checkbox,
-                'fieldId': 'rich_text'
+                'fieldId': 'rich_text',
             },
             'richTextContent': {
                 'type': SetValueCmd.type.richText,
@@ -83,7 +90,7 @@ export default class DocElementPanel extends PanelBase {
                 'labelId': 'rbro_doc_element_size_label',
                 'defaultLabel': 'docElementSize',
                 'singlePropertyLabel': 'docElementWidth',
-                'visibleIf': "type != 'bar_code' || (format != 'QRCode' && rotate)"
+                'visibleIf': "docElementType != 'bar_code' || (format != 'QRCode' && rotate)"
             },
             'height': {
                 'type': SetValueCmd.type.text,
@@ -132,20 +139,20 @@ export default class DocElementPanel extends PanelBase {
             },
             'source': {
                 'type': SetValueCmd.type.text,
-                'fieldId': 'source'
+                'fieldId': 'source',
             },
             'image': {
                 'type': SetValueCmd.type.file,
                 'fieldId': 'image',
                 'rowId': 'rbro_doc_element_image_row',
                 'singleRowProperty': false,
-                'rowProperties': ['image', 'imageFilename']
+                'rowProperties': ['image', 'imageFilename'],
             },
             'imageFilename': {
                 'type': SetValueCmd.type.filename,
                 'fieldId': 'image_filename',
                 'rowId': 'rbro_doc_element_image_row',
-                'singleRowProperty': false
+                'singleRowProperty': false,
             },
             'columns': {
                 'type': SetValueCmd.type.text,
@@ -163,17 +170,29 @@ export default class DocElementPanel extends PanelBase {
                 'type': SetValueCmd.type.checkbox,
                 'fieldId': 'footer'
             },
-            'color': {
-                'type': SetValueCmd.type.color,
-                'allowEmpty': false,
-                'fieldId': 'color',
-                'section': 'style'
+            'rotateDeg': {
+                'type': SetValueCmd.type.text,
+                'fieldId': 'rotate_deg',
+            },
+            'opacity': {
+                'type': SetValueCmd.type.text,
+                'fieldId': 'opacity',
+            },
+            'showInForeground': {
+                'type': SetValueCmd.type.checkbox,
+                'fieldId': 'show_in_foreground',
             },
             'styleId': {
                 'type': SetValueCmd.type.select,
                 'fieldId': 'style_id',
                 'section': 'style',
                 'allowEmpty': true
+            },
+            'color': {
+                'type': SetValueCmd.type.color,
+                'allowEmpty': false,
+                'fieldId': 'color',
+                'section': 'style'
             },
             'bold': {
                 'type': SetValueCmd.type.button,
@@ -617,6 +636,17 @@ export default class DocElementPanel extends PanelBase {
                 'fieldId': 'spreadsheet_add_empty_row',
                 'section': 'spreadsheet'
             },
+            'spreadsheet_type': {
+                'type': SetValueCmd.type.select,
+                'fieldId': 'spreadsheet_type',
+                'section': 'spreadsheet'
+            },
+            'spreadsheet_pattern': {
+                'type': SetValueCmd.type.text,
+                'fieldId': 'spreadsheet_pattern',
+                'section': 'spreadsheet',
+                'visibleIf': 'spreadsheet_type'
+            },
             'spreadsheet_textWrap': {
                 'type': SetValueCmd.type.checkbox,
                 'fieldId': 'spreadsheet_text_wrap',
@@ -630,30 +660,7 @@ export default class DocElementPanel extends PanelBase {
             delete this.propertyDescriptors['richTextContent'];
         }
 
-        // collect all fields which are referenced in the visibleIf property
-        this.visibleIfFields = [];
-        for (let property in this.propertyDescriptors) {
-            if (this.propertyDescriptors.hasOwnProperty(property)) {
-                let propertyDescriptor = this.propertyDescriptors[property];
-                if ('visibleIf' in propertyDescriptor) {
-                    // add all fields used in visibleIf expression to visibileIfFields list of property descriptor
-                    const tokens = utils.tokenize(propertyDescriptor['visibleIf'], null);
-                    for (const token of tokens) {
-                        if (token.type === 'field') {
-                            if (!('visibleIfFields' in propertyDescriptor)) {
-                                propertyDescriptor.visibleIfFields = [token.value];
-                            } else if (!propertyDescriptor.visibleIfFields.includes(token.value)) {
-                                propertyDescriptor.visibleIfFields.push(token.value);
-                            }
-
-                            if (!this.visibleIfFields.includes(token.value)) {
-                                this.visibleIfFields.push(token.value);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        super.initVisibleIfFields();
     }
 
     render() {
@@ -1452,6 +1459,108 @@ export default class DocElementPanel extends PanelBase {
         elDiv.append(elFormField);
         panel.append(elDiv);
 
+        elDiv = utils.createElement('div', { id: 'rbro_doc_element_rotate_deg_row', class: 'rbroFormRow' });
+        utils.appendLabel(elDiv, this.rb.getLabel('docElementRotateDeg'), 'rbro_doc_element_rotate_deg');
+        elFormField = utils.createElement('div', { class: 'rbroFormField' });
+        let elRotateDeg = utils.createElement(
+            'input', { id: 'rbro_doc_element_rotate_deg', type: 'number', step: '15', autocomplete: 'off' });
+        elRotateDeg.addEventListener('input', (event) => {
+            let val = elRotateDeg.value;
+            if (val !== '') {
+                val = utils.checkInputDecimal(val, 0, 360);
+            }
+            if (val !== elRotateDeg.value) {
+                elRotateDeg.value = val;
+            }
+            let selectedObjects = this.rb.getSelectedObjects();
+            let valueChanged = false;
+            for (let i=selectedObjects.length - 1; i >= 0; i--) {
+                if (selectedObjects[i].getValue('rotateDeg') !== val) {
+                    valueChanged = true;
+                    break;
+                }
+            }
+
+            if (valueChanged) {
+                let cmdGroup = new CommandGroupCmd('Set value', this.rb);
+                for (let i=selectedObjects.length - 1; i >= 0; i--) {
+                    let obj = selectedObjects[i];
+                    cmdGroup.addSelection(obj.getId());
+                    cmdGroup.addCommand(new SetValueCmd(
+                        obj.getId(), 'rotateDeg', val, SetValueCmd.type.text, this.rb));
+                }
+                if (!cmdGroup.isEmpty()) {
+                    this.rb.executeCommand(cmdGroup);
+                }
+            }
+        });
+        elFormField.append(elRotateDeg);
+        elDiv.append(elFormField);
+        panel.append(elDiv);
+
+        elDiv = utils.createElement('div', { id: 'rbro_doc_element_opacity_row', class: 'rbroFormRow' });
+        utils.appendLabel(elDiv, this.rb.getLabel('docElementOpacity'), 'rbro_doc_element_opacity');
+        elFormField = utils.createElement('div', { class: 'rbroFormField' });
+        let elOpacity = utils.createElement(
+            'input', { id: 'rbro_doc_element_opacity', type: 'number', step: '10', autocomplete: 'off' });
+        elOpacity.addEventListener('input', (event) => {
+            let val = elOpacity.value;
+            if (val !== '') {
+                val = utils.checkInputDecimal(val, 0, 100);
+            }
+            if (val !== elOpacity.value) {
+                elOpacity.value = val;
+            }
+            let selectedObjects = this.rb.getSelectedObjects();
+            let valueChanged = false;
+            for (let i=selectedObjects.length - 1; i >= 0; i--) {
+                if (selectedObjects[i].getValue('opacity') !== val) {
+                    valueChanged = true;
+                    break;
+                }
+            }
+
+            if (valueChanged) {
+                let cmdGroup = new CommandGroupCmd('Set value', this.rb);
+                for (let i=selectedObjects.length - 1; i >= 0; i--) {
+                    let obj = selectedObjects[i];
+                    cmdGroup.addSelection(obj.getId());
+                    cmdGroup.addCommand(new SetValueCmd(
+                        obj.getId(), 'opacity', val, SetValueCmd.type.text, this.rb));
+                }
+                if (!cmdGroup.isEmpty()) {
+                    this.rb.executeCommand(cmdGroup);
+                }
+            }
+        });
+        elFormField.append(elOpacity);
+        elDiv.append(elFormField);
+        panel.append(elDiv);
+
+        elDiv = utils.createElement(
+          'div', { id: 'rbro_doc_element_show_in_foreground_row', class: 'rbroFormRow rbroHidden' });
+        utils.appendLabel(elDiv, this.rb.getLabel('docElementShowInForeground'), 'rbro_doc_element_show_in_foreground');
+        elFormField = utils.createElement('div', { class: 'rbroFormField' });
+        let elShowInForeground = utils.createElement(
+          'input', { id: 'rbro_doc_element_show_in_foreground', type: 'checkbox' });
+        elShowInForeground.addEventListener('change', (event) => {
+            let cmdGroup = new CommandGroupCmd('Set value', this.rb);
+            let selectedObjects = this.rb.getSelectedObjects();
+            let showInForegroundChecked = elShowInForeground.checked;
+            for (let i=selectedObjects.length - 1; i >= 0; i--) {
+                let obj = selectedObjects[i];
+                cmdGroup.addSelection(obj.getId());
+                cmdGroup.addCommand(new SetValueCmd(
+                    obj.getId(), 'showInForeground', showInForegroundChecked, SetValueCmd.type.checkbox, this.rb));
+            }
+            if (!cmdGroup.isEmpty()) {
+                this.rb.executeCommand(cmdGroup);
+            }
+        });
+        elFormField.append(elShowInForeground);
+        elDiv.append(elFormField);
+        panel.append(elDiv);
+
         // ---------------------------
         // --- Style Section Begin ---
         // ---------------------------
@@ -1480,33 +1589,6 @@ export default class DocElementPanel extends PanelBase {
         elStyleSectionContainer.append(elDiv);
 
         let elStyleSectionDiv = utils.createElement('div', { id: 'rbro_doc_element_style_section' });
-
-        elDiv = utils.createElement('div', { id: 'rbro_doc_element_color_row', class: 'rbroFormRow' });
-        utils.appendLabel(elDiv, this.rb.getLabel('docElementColor'), 'rbro_doc_element_color');
-        elFormField = utils.createElement('div', { class: 'rbroFormField' });
-        let elColorContainer = utils.createElement('div', { class: 'rbroColorPickerContainer' });
-        let elColor = utils.createElement('input', { id: 'rbro_doc_element_color', autocomplete: 'off' });
-        elColor.addEventListener('change', (event) => {
-            let val = elColor.value;
-            if (utils.isValidColor(val)) {
-                let cmdGroup = new CommandGroupCmd('Set value', this.rb);
-                let selectedObjects = this.rb.getSelectedObjects();
-                for (let i=selectedObjects.length - 1; i >= 0; i--) {
-                    let obj = selectedObjects[i];
-                    cmdGroup.addSelection(obj.getId());
-                    cmdGroup.addCommand(new SetValueCmd(
-                        obj.getId(), 'color', val, SetValueCmd.type.color, this.rb));
-                }
-                if (!cmdGroup.isEmpty()) {
-                    this.rb.executeCommand(cmdGroup);
-                }
-            }
-        });
-        elColorContainer.append(elColor);
-        this.controls['color'] = utils.createColorPicker(elColorContainer, elColor, false, this.rb);
-        elFormField.append(elColorContainer);
-        elDiv.append(elFormField);
-        elStyleSectionDiv.append(elDiv);
 
         elDiv = utils.createElement('div', { id: 'rbro_doc_element_style_id_row', class: 'rbroFormRow' });
         utils.appendLabel(elDiv, this.rb.getLabel('docElementStyle'), 'rbro_doc_element_style_id');
@@ -2237,6 +2319,81 @@ export default class DocElementPanel extends PanelBase {
         elDiv.append(elFormField);
         elSpreadsheetSectionDiv.append(elDiv);
 
+        elDiv = utils.createElement('div', { id: 'rbro_doc_element_spreadsheet_type_row', class: 'rbroFormRow' });
+        utils.appendLabel(elDiv, this.rb.getLabel('docElementSpreadsheetType'), 'rbro_doc_element_spreadsheet_type');
+        elFormField = utils.createElement('div', { class: 'rbroFormField' });
+        let elSpreadsheetType = utils.createElement('select', { id: 'rbro_doc_element_spreadsheet_type' });
+        elSpreadsheetType.append(
+            utils.createElement('option', { value: '' }, this.rb.getLabel('docElementSpreadsheetTypeNone')));
+        elSpreadsheetType.append(
+            utils.createElement('option', { value: 'number' }, this.rb.getLabel('docElementSpreadsheetTypeNumber')));
+        elSpreadsheetType.append(
+            utils.createElement('option', { value: 'date' }, this.rb.getLabel('docElementSpreadsheetTypeDate')));
+        elSpreadsheetType.addEventListener('change', (event) => {
+            let val = elSpreadsheetType.value;
+            let cmdGroup = new CommandGroupCmd('Set value', this.rb);
+            let selectedObjects = this.rb.getSelectedObjects();
+            for (let i=selectedObjects.length - 1; i >= 0; i--) {
+                let obj = selectedObjects[i];
+                cmdGroup.addSelection(obj.getId());
+                cmdGroup.addCommand(new SetValueCmd(
+                    obj.getId(), 'spreadsheet_type', val, SetValueCmd.type.text, this.rb));
+            }
+            if (!cmdGroup.isEmpty()) {
+                this.rb.executeCommand(cmdGroup);
+            }
+        });
+        elFormField.append(elSpreadsheetType);
+        elFormField.append(utils.createElement(
+          'div', { id: 'rbro_doc_element_spreadsheet_type_error', class: 'rbroErrorMessage' }));
+        elDiv.append(elFormField);
+        elSpreadsheetSectionDiv.append(elDiv);
+
+        elDiv = utils.createElement('div', { id: 'rbro_doc_element_spreadsheet_pattern_row', class: 'rbroFormRow' });
+        utils.appendLabel(
+          elDiv, this.rb.getLabel('docElementSpreadsheetPattern'), 'rbro_doc_element_spreadsheet_pattern');
+        elFormField = utils.createElement('div', { class: 'rbroFormField' });
+        elSplit = utils.createElement('div', { class: 'rbroSplit rbroSelector' });
+        let elSpreadsheetPattern = utils.createElement(
+          'input', { id: 'rbro_doc_element_spreadsheet_pattern', autocomplete: 'off' });
+        elSpreadsheetPattern.addEventListener('input', (event) => {
+            let val = elSpreadsheetPattern.value;
+            let cmdGroup = new CommandGroupCmd('Set value', this.rb);
+            let selectedObjects = this.rb.getSelectedObjects();
+            for (let i=selectedObjects.length - 1; i >= 0; i--) {
+                let obj = selectedObjects[i];
+                cmdGroup.addSelection(obj.getId());
+                cmdGroup.addCommand(new SetValueCmd(
+                    obj.getId(), 'spreadsheet_pattern', val, SetValueCmd.type.text, this.rb));
+            }
+            if (!cmdGroup.isEmpty()) {
+                this.rb.executeCommand(cmdGroup);
+            }
+        });
+        elSplit.append(elSpreadsheetPattern);
+        elParameterButton = utils.createElement('div', { class: 'rbroButton rbroRoundButton rbroIcon-select' });
+        elParameterButton.addEventListener('click', (event) => {
+            let patterns;
+            if (elSpreadsheetType.value === 'date') {
+                patterns = this.rb.getProperty('patternDates');
+            } else if (elSpreadsheetType.value === 'number') {
+                patterns = this.rb.getProperty('patternNumbers');
+            } else {
+                patterns = this.rb.getPatterns();
+            }
+
+            this.rb.getPopupWindow().show(
+                patterns, null, 'rbro_doc_element_spreadsheet_pattern', 'spreadsheet_pattern',
+                PopupWindow.type.pattern);
+        });
+        elSplit.append(elParameterButton);
+        elFormField.append(elSplit);
+        elFormField.append(
+            utils.createElement('div', { id: 'rbro_doc_element_spreadsheet_pattern_error', class: 'rbroErrorMessage' })
+        );
+        elDiv.append(elFormField);
+        elSpreadsheetSectionDiv.append(elDiv);
+
         elDiv = utils.createElement(
             'div', { id: 'rbro_doc_element_spreadsheet_text_wrap_row', class: 'rbroFormRow' });
         utils.appendLabel(
@@ -2280,8 +2437,20 @@ export default class DocElementPanel extends PanelBase {
     }
 
     renderStyleSelect() {
-        utils.populateStyleSelect(this.elStyle, null, this.rb);
-        utils.populateStyleSelect(this.elCsStyle, null, this.rb);
+        let styleType = '';
+        const selectedObjects = this.rb.getSelectedObjects();
+        if (selectedObjects.length > 0) {
+            styleType = DocElementPanel.getElementStyleType(selectedObjects[0]);
+            for (const selectedObject of this.rb.getSelectedObjects()) {
+                if (styleType !== DocElementPanel.getElementStyleType(selectedObject)) {
+                    styleType = 'mixed';
+                    break;
+                }
+            }
+        }
+
+        utils.populateStyleSelect(this.elStyle, styleType, null, this.rb);
+        utils.populateStyleSelect(this.elCsStyle, styleType, null, this.rb);
     }
 
     setupRichText() {
@@ -2389,172 +2558,10 @@ export default class DocElementPanel extends PanelBase {
     }
 
     /**
-     * Is called when the selection is changed or the selected element was changed.
-     * The panel is updated to show the values of the selected data objects.
-     * @param {String} [field] - affected field in case of change operation.
+     * Update size of all autosize textareas in panel.
+     * @param {?String} field - affected field in case of change operation.
      */
-    updateDisplay(field) {
-        let selectedObjects = this.rb.getSelectedObjects();
-
-        let sectionPropertyCount = {};
-        let sharedProperties = {};
-        for (let obj of selectedObjects) {
-            let properties = obj.getProperties();
-            for (let property of properties) {
-                if (property in sharedProperties) {
-                    sharedProperties[property] += 1;
-                } else {
-                    sharedProperties[property] = 1;
-                }
-            }
-        }
-
-        // show/hide property depending if it is available in all selected objects
-        for (let property in this.propertyDescriptors) {
-            if (this.propertyDescriptors.hasOwnProperty(property)) {
-                const propertyDescriptor = this.propertyDescriptors[property];
-                let visibleIf = '';
-                if ('visibleIf' in propertyDescriptor) {
-                    visibleIf = propertyDescriptor['visibleIf'];
-                }
-
-                if (field === null || property === field ||
-                        (visibleIf && propertyDescriptor.visibleIfFields.includes(field))) {
-                    let show = false;
-                    if (property in sharedProperties) {
-                        if (sharedProperties[property] === selectedObjects.length) {
-                            let value = null;
-                            let differentValues = false;
-                            for (let obj of selectedObjects) {
-                                let objValue = obj.getUpdateValue(property, obj.getValue(property));
-                                if (value === null) {
-                                    value = objValue;
-                                } else if (propertyDescriptor['type'] === SetValueCmd.type.richText) {
-                                    if (objValue && value) {
-                                        let diff = new Delta(objValue).diff(new Delta(value));
-                                        if (diff.ops.length > 0) {
-                                            differentValues = true;
-                                            break;
-                                        }
-                                    }
-                                } else if (objValue !== value) {
-                                    differentValues = true;
-                                    break;
-                                }
-                            }
-
-                            if (differentValues && propertyDescriptor['type'] === SetValueCmd.type.select &&
-                                propertyDescriptor['allowEmpty']) {
-                                // if values are different and dropdown has empty option then select
-                                // empty dropdown option
-                                value = '';
-                            }
-                            super.setValue(propertyDescriptor, value, differentValues);
-
-                            if ('section' in propertyDescriptor) {
-                                let sectionName = propertyDescriptor['section'];
-                                if (sectionName in sectionPropertyCount) {
-                                    sectionPropertyCount[sectionName] += 1;
-                                } else {
-                                    sectionPropertyCount[sectionName] = 1;
-                                }
-                            }
-                            show = true;
-                        } else {
-                            delete sharedProperties[property];
-                        }
-                    }
-
-                    if (show && visibleIf) {
-                        for (let obj of selectedObjects) {
-                            if (!utils.evaluateExpression(visibleIf, obj)) {
-                                show = false;
-                                delete sharedProperties[property];
-                                break;
-                            }
-                        }
-                    }
-
-                    if ('singleRowProperty' in propertyDescriptor &&
-                        !propertyDescriptor['singleRowProperty']) {
-                        // only handle visibility of control and not of whole row.
-                        // row visibility will be handled below, e.g. for button groups
-                        let propertyId = `rbro_doc_element_${propertyDescriptor['fieldId']}`;
-                        if (show) {
-                            document.getElementById(propertyId).classList.remove('rbroHidden');
-                        } else {
-                            document.getElementById(propertyId).classList.add('rbroHidden');
-                        }
-                    } else {
-                        let rowId = this.getRowId(propertyDescriptor);
-                        if (show) {
-                            document.getElementById(rowId).classList.remove('rbroHidden');
-                        } else {
-                            document.getElementById(rowId).classList.add('rbroHidden');
-                        }
-                    }
-                }
-            }
-        }
-
-        if (field === null || this.visibleIfFields.includes(field)) {
-            // only update labels, visible rows and sections if selection was changed (no specific field update)
-            // or field is referenced in visibleIf property (and therefor could have
-            // influence on visibility of other fields)
-
-            // sharedProperties now only contains properties shared by all objects
-
-            for (let property in this.propertyDescriptors) {
-                if (this.propertyDescriptors.hasOwnProperty(property)) {
-                    let propertyDescriptor = this.propertyDescriptors[property];
-                    if ('rowId' in propertyDescriptor && 'rowProperties' in propertyDescriptor) {
-                        let shownPropertyCount = 0;
-                        for (let rowProperty of propertyDescriptor['rowProperties']) {
-                            if (rowProperty in sharedProperties) {
-                                shownPropertyCount++;
-                            }
-                        }
-                        if ('labelId' in propertyDescriptor) {
-                            let label = propertyDescriptor['defaultLabel'];
-                            if (shownPropertyCount === 1) {
-                                // get label of single property shown in this property group, e.g. label
-                                // is changed to "Width" instead of "Size (Width, Height)" if only width property
-                                // is shown and not both width and height.
-                                for (let rowProperty of propertyDescriptor['rowProperties']) {
-                                    if (rowProperty in sharedProperties) {
-                                        label = this.propertyDescriptors[rowProperty]['singlePropertyLabel'];
-                                        break;
-                                    }
-                                }
-                            }
-                            document.getElementById(propertyDescriptor['labelId']).textContent =
-                                this.rb.getLabel(label) + ':';
-                        }
-                        if (shownPropertyCount > 0) {
-                            document.getElementById(propertyDescriptor['rowId']).classList.remove('rbroHidden');
-                        } else {
-                            document.getElementById(propertyDescriptor['rowId']).classList.add('rbroHidden');
-                        }
-                    }
-                }
-            }
-
-            // show section if there is at least one property shown in section
-            for (let section of ['style', 'print', 'cs_style', 'spreadsheet']) {
-                if (section in sectionPropertyCount) {
-                    document.getElementById(`rbro_doc_element_${section}_section_container`)
-                        .classList.remove('rbroHidden');
-                } else {
-                    document.getElementById(`rbro_doc_element_${section}_section_container`)
-                        .classList.add('rbroHidden');
-                }
-            }
-        }
-
-        DocElementPanel.updateAutosizeInputs(field);
-    }
-
-    static updateAutosizeInputs(field) {
+    updateAutosizeInputs(field) {
         if (field === null || field === 'dataSource') {
             autosize.update(document.getElementById('rbro_doc_element_data_source'));
         }
@@ -2576,7 +2583,6 @@ export default class DocElementPanel extends PanelBase {
     }
 
     show() {
-        this.renderStyleSelect();
         super.show();
     }
 
@@ -2596,5 +2602,47 @@ export default class DocElementPanel extends PanelBase {
         } else {
             super.notifyEvent(obj, operation, field);
         }
+    }
+
+    /**
+     * Is called when the selected element was changed.
+     */
+    selectionChanged() {
+        // render style selects before values are set (in super.selectionChanged), otherwise selection gets lost
+        this.renderStyleSelect();
+        super.selectionChanged();
+    }
+
+    /**
+     * Return available sections in the property panel.
+     * @returns {[String]}
+     */
+    getSections() {
+        return ['style', 'print', 'cs_style', 'spreadsheet'];
+    }
+
+    /**
+     * Return style type for given element (needed for rendering of style select) or empty string if
+     * element does not have a style.
+     * @param {DocElement} element - doc element
+     * @return {string} style type
+     */
+    static getElementStyleType(element) {
+        if (element instanceof TextElement || element instanceof TableTextElement) {
+            return Style.type.text;
+        } else if (element instanceof LineElement) {
+            return Style.type.line;
+        } else if (element instanceof ImageElement) {
+            return Style.type.image;
+        } else if (element instanceof TableElement) {
+            return Style.type.table;
+        } else if (element instanceof TableBandElement) {
+            return Style.type.tableBand;
+        } else if (element instanceof FrameElement) {
+            return Style.type.frame;
+        } else if (element instanceof SectionBandElement) {
+            return Style.type.sectionBand;
+        }
+        return '';
     }
 }

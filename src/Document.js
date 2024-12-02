@@ -706,6 +706,14 @@ export default class Document {
         return null;
     }
 
+    /**
+     * Return element for page background independent of page margins.
+     * @return {Element}
+     */
+    getPageElement() {
+        return this.elDoc;
+    }
+
     isDragging() {
         return this.dragging;
     }

@@ -78,6 +78,8 @@ export default class TextElement extends DocElement {
         this.spreadsheet_column = '';
         this.spreadsheet_colspan = '';
         this.spreadsheet_addEmptyRow = false;
+        this.spreadsheet_type = '';
+        this.spreadsheet_pattern = '';
         this.spreadsheet_textWrap = false;
         this.setInitialData(initialData);
 
@@ -112,7 +114,7 @@ export default class TextElement extends DocElement {
             // Style.setBorderValue needs to be called before super.setValue
             // because it calls updateStyle() which expects the correct border settings
             this[field] = value;
-            if (field.substr(0, 3) === 'cs_') {
+            if (field.substring(0, 3) === 'cs_') {
                 if (field === 'cs_borderWidth') {
                     this.borderWidthVal = utils.convertInputToNumber(value);
                 }
@@ -166,7 +168,7 @@ export default class TextElement extends DocElement {
             'cs_borderAll', 'cs_borderLeft', 'cs_borderTop', 'cs_borderRight', 'cs_borderBottom',
             'cs_paddingLeft', 'cs_paddingTop', 'cs_paddingRight', 'cs_paddingBottom',
             'spreadsheet_hide', 'spreadsheet_column', 'spreadsheet_colspan',
-            'spreadsheet_addEmptyRow', 'spreadsheet_textWrap'
+            'spreadsheet_addEmptyRow', 'spreadsheet_type', 'spreadsheet_pattern', 'spreadsheet_textWrap'
         ];
     }
 
@@ -185,51 +187,6 @@ export default class TextElement extends DocElement {
         let contentSize = this.getContentSize(width, height, this.getStyle());
         this.elContentText.style.width = this.rb.toPixel(contentSize.width);
         this.elContentText.style.height = this.rb.toPixel(contentSize.height);
-    }
-
-    getStyle() {
-        let style = this;
-        if (this.styleId !== '') {
-            let styleObj = this.rb.getDataObject(this.styleId);
-            if (styleObj !== null) {
-                style = styleObj;
-            }
-        }
-        return style;
-    }
-
-    /**
-     * Adds commands to command group parameter to set style properties of given style.
-     *
-     * This should be called when the style was changed so all style properties
-     * will be updated as well.
-     *
-     * @param {String} styleId - id of new style or empty string if no style was selected.
-     * @param {String} fieldPrefix - field prefix when accessing properties.
-     * @param {Object[]} propertyDescriptors - list of all property descriptors to get
-     * property type for SetValueCmd.
-     * @param {CommandGroupCmd} cmdGroup - commands will be added to this command group.
-     */
-    addCommandsForChangedStyle(styleId, fieldPrefix, propertyDescriptors, cmdGroup) {
-        if (styleId !== '') {
-            let style = this.rb.getStyleById(styleId);
-            if (style !== null) {
-                let fields = style.getFields().slice(2);  // get all fields except id and name
-                for (let field of fields) {
-                    let objField = fieldPrefix + field;
-                    let value = style.getValue(field);
-                    if (value !== this.getValue(objField)) {
-                        let propertyDescriptor = propertyDescriptors[objField];
-                        let cmd = new SetValueCmd(
-                            this.getId(), objField, value, propertyDescriptor['type'], this.rb);
-                        cmd.disableSelect();
-                        cmdGroup.addCommand(cmd);
-                    }
-                }
-            }
-        }
-        cmdGroup.addCommand(new SetValueCmd(
-            this.getId(), fieldPrefix + 'styleId', styleId, SetValueCmd.type.select, this.rb));
     }
 
     getContentSize(width, height, style) {
@@ -375,7 +332,7 @@ export default class TextElement extends DocElement {
             text = text.replace(/(?:\r\n|\r|\n)/g, ' ');
             // truncate text if it is too long
             if (text.length > 80) {
-                text = text.substr(0, 80);
+                text = text.substring(0, 80);
             }
             text = text.trim();
         }
@@ -414,12 +371,16 @@ export default class TextElement extends DocElement {
     }
 
     toJS() {
-        let ret = super.toJS();
-        for (let field of ['borderWidth', 'paddingLeft', 'paddingTop', 'paddingRight', 'paddingBottom',
-                'cs_paddingLeft', 'cs_paddingTop', 'cs_paddingRight', 'cs_paddingBottom']) {
-            ret[field] = utils.convertInputToNumber(this.getValue(field));
+        const rv = super.toJS();
+        const numericFields = ['borderWidth', 'paddingLeft', 'paddingTop', 'paddingRight', 'paddingBottom'];
+        // watermark text does not have conditional style properties
+        if (this.getElementType() !== DocElement.type.watermarkText) {
+            numericFields.push('cs_paddingLeft', 'cs_paddingTop', 'cs_paddingRight', 'cs_paddingBottom');
         }
-        return ret;
+        for (const field of numericFields) {
+            rv[field] = utils.convertInputToNumber(this.getValue(field));
+        }
+        return rv;
     }
 
     /**

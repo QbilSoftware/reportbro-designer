@@ -37,6 +37,8 @@ export default class DocumentProperties {
         this.headerSizeVal = this.header ? utils.convertInputToNumber(this.headerSize) : 0;
         this.footerSizeVal = this.footer ? utils.convertInputToNumber(this.footerSize) : 0;
 
+        this.watermark = false;
+
         this.patternLocale = rb.getProperty('patternLocale');
         this.patternCurrencySymbol = rb.getProperty('patternCurrencySymbol');
         this.patternNumberGroupSymbol = rb.getProperty('patternNumberGroupSymbol');
@@ -71,6 +73,7 @@ export default class DocumentProperties {
         this.rb.getDocument().updateFooter();
         this.updateHeader();
         this.updateFooter();
+        this.updateWatermark();
     }
 
     /**
@@ -82,9 +85,18 @@ export default class DocumentProperties {
             'pageFormat', 'pageWidth', 'pageHeight', 'unit', 'orientation',
             'contentHeight', 'marginLeft', 'marginTop', 'marginRight', 'marginBottom',
             'header', 'headerSize', 'headerDisplay', 'footer', 'footerSize', 'footerDisplay',
-            'patternLocale', 'patternCurrencySymbol', 'patternNumberGroupSymbol',
+            'watermark', 'patternLocale', 'patternCurrencySymbol', 'patternNumberGroupSymbol',
         ];
     }
+
+    /**
+     * Returns all fields of this object that can be modified in the properties panel.
+     * @returns {String[]}
+     */
+    getProperties() {
+        return this.getFields();
+    }
+
 
     getId() {
         return this.id;
@@ -117,21 +129,33 @@ export default class DocumentProperties {
             this.updateHeader();
         } else if (field === 'footer') {
             this.updateFooter();
+        } else if (field === 'watermark') {
+            this.updateWatermark();
         }
+
         if (field === 'header' || field === 'headerSize') {
             this.rb.getDocument().updateHeader();
             this.headerSizeVal = this.header ? utils.convertInputToNumber(this.headerSize) : 0;
-        }
-        if (field === 'footer' || field === 'footerSize') {
+        }  else if (field === 'footer' || field === 'footerSize') {
             this.rb.getDocument().updateFooter();
             this.footerSizeVal = this.footer ? utils.convertInputToNumber(this.footerSize) : 0;
-        }
-        if (field === 'pageFormat' ||field === 'pageWidth' || field === 'pageHeight' || field === 'unit' ||
+        } else if (field === 'pageFormat' ||field === 'pageWidth' || field === 'pageHeight' || field === 'unit' ||
                 field === 'orientation' || field === 'contentHeight' ||
                 field === 'marginTop' || field === 'marginBottom') {
             let size = this.getPageSize();
             this.updatePageSize(size);
         }
+    }
+
+    /**
+     * Returns value to use for updating input control.
+     * Can be overridden in case update value can be different from internal value, e.g.
+     * width for table cells with colspan > 1.
+     * @param {String} field - field name.
+     * @param {String} value - value for update.
+     */
+    getUpdateValue(field, value) {
+        return value;
     }
 
     updatePageSize(size) {
@@ -162,6 +186,14 @@ export default class DocumentProperties {
             this.rb.getMainPanel().showFooter();
         } else {
             this.rb.getMainPanel().hideFooter();
+        }
+    }
+
+    updateWatermark() {
+        if (this.watermark) {
+            this.rb.getMainPanel().showWatermarks();
+        } else {
+            this.rb.getMainPanel().hideWatermarks();
         }
     }
 

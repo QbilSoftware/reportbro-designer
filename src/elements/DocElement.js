@@ -24,6 +24,7 @@ export default class DocElement {
         this.linkedContainerId = null;
         this.printIf = '';
         this.removeEmptyElement = false;
+        this.styleId = '';
 
         this.el = null;
         this.selected = false;
@@ -60,7 +61,7 @@ export default class DocElement {
      */
     setup(openPanelItem) {
         let container = this.getContainer();
-        if (container !== null) {
+        if (container !== null && this.hasBoundaries()) {
             // adapt position if new element is outside container
             let containerSize = container.getContentSize();
             if (this.xVal + this.widthVal > containerSize.width) {
@@ -298,10 +299,9 @@ export default class DocElement {
     }
 
     /**
-     * Check element bounds within container and adapt position/size if necessary.
+     * Add commands for updated position/size.
      *
-     * This should be called when an element is resized or moved to another container to guarantee that
-     * the element is not out of bounds.
+     * This should be called when an element is moved, resized or moved to another container.
      * @param {Number} x - x value of doc element.
      * @param {Number} y - y value of doc element.
      * @param {Number} width - width value of doc element.
@@ -309,24 +309,27 @@ export default class DocElement {
      * @param {Object} containerSize - width and height of container where this doc element belongs to.
      * @param {CommandGroupCmd} cmdGroup - possible SetValue commands will be added to this command group.
      */
-    checkBounds(x, y, width, height, containerSize, cmdGroup) {
-        if ((x + width) > containerSize.width) {
-            x = containerSize.width - width;
-        }
-        if (x < 0)  {
-            x = 0;
-        }
-        if ((x + width) > containerSize.width) {
-            width = containerSize.width - x;
-        }
-        if ((y + height) > containerSize.height) {
-            y = containerSize.height - height;
-        }
-        if (y < 0)  {
-            y = 0;
-        }
-        if ((y + height) > containerSize.height) {
-            height = containerSize.height - y;
+    updatePositionAndSize(x, y, width, height, containerSize, cmdGroup) {
+        if (this.hasBoundaries()) {
+            // Check element bounds within container and adapt position/size if necessary
+            if ((x + width) > containerSize.width) {
+                x = containerSize.width - width;
+            }
+            if (x < 0)  {
+                x = 0;
+            }
+            if ((x + width) > containerSize.width) {
+                width = containerSize.width - x;
+            }
+            if ((y + height) > containerSize.height) {
+                y = containerSize.height - height;
+            }
+            if (y < 0)  {
+                y = 0;
+            }
+            if ((y + height) > containerSize.height) {
+                height = containerSize.height - y;
+            }
         }
 
         if (x !== this.xVal && this.hasProperty('x')) {
@@ -357,7 +360,7 @@ export default class DocElement {
             for (let child of linkedContainer.getPanelItem().getChildren()) {
                 if (child.getData() instanceof DocElement) {
                     let docElement = child.getData();
-                    docElement.checkBounds(docElement.getValue('xVal'), docElement.getValue('yVal'),
+                    docElement.updatePositionAndSize(docElement.getValue('xVal'), docElement.getValue('yVal'),
                         docElement.getDisplayWidth(), docElement.getDisplayHeight(),
                         linkedContainerSize, cmdGroup);
                 }
@@ -473,6 +476,56 @@ export default class DocElement {
             this.el.style.width = this.rb.toPixel(width);
             this.el.style.height = this.rb.toPixel(height);
         }
+    }
+
+    getStyle() {
+        let style = this;
+        if (this.styleId !== '') {
+            let styleObj = this.rb.getDataObject(this.styleId);
+            if (styleObj !== null) {
+                style = styleObj;
+            }
+        }
+        return style;
+    }
+
+    /**
+     * Adds commands to command group parameter to set style properties of given style.
+     *
+     * This should be called when the style was changed so all style properties
+     * will be updated as well.
+     *
+     * @param {Number|String} styleId - id of new style or empty string if no style was selected.
+     * @param {String} fieldPrefix - field prefix when accessing properties.
+     * @param {Object[]} propertyDescriptors - list of all property descriptors to get
+     * property type for SetValueCmd.
+     * @param {CommandGroupCmd} cmdGroup - commands will be added to this command group.
+     */
+    addCommandsForChangedStyle(styleId, fieldPrefix, propertyDescriptors, cmdGroup) {
+        if (styleId) {
+            const style = this.rb.getStyleById(styleId);
+            if (style !== null) {
+                const docElementProperties = this.getProperties();
+                const styleProperties = style.getStyleProperties();
+                for (let styleProperty of styleProperties) {
+                    // test if style property is part of doc element properties (style contains properties for
+                    // all different doc element types)
+                    if (docElementProperties.indexOf(styleProperty) !== -1) {
+                        const objField = fieldPrefix + styleProperty;
+                        const value = style.getValue(styleProperty);
+                        if (value !== this.getValue(objField)) {
+                            const propertyDescriptor = propertyDescriptors[objField];
+                            const cmd = new SetValueCmd(
+                              this.getId(), objField, value, propertyDescriptor['type'], this.rb);
+                            cmd.disableSelect();
+                            cmdGroup.addCommand(cmd);
+                        }
+                    }
+                }
+            }
+        }
+        cmdGroup.addCommand(new SetValueCmd(
+            this.getId(), fieldPrefix + 'styleId', styleId, SetValueCmd.type.select, this.rb));
     }
 
     updateStyle() {
@@ -646,7 +699,7 @@ export default class DocElement {
             }
             if (!containerChanged || dragContainer.isElementAllowed(this.getElementType())) {
                 const cmdCountBefore = cmdGroup.getCommands().length;
-                this.checkBounds(posX1, posY1, width, height, containerSize, cmdGroup);
+                this.updatePositionAndSize(posX1, posY1, width, height, containerSize, cmdGroup);
 
                 if (containerChanged) {
                     let cmd = new SetValueCmd(
@@ -735,6 +788,14 @@ export default class DocElement {
     }
 
     /**
+     * Returns true if element is restricted within container boundaries.
+     * @returns {boolean}
+     */
+    hasBoundaries() {
+        return true;
+    }
+
+    /**
      * Returns true if the element can be selected when it is inside a
      * selection area (rectangle specified with pressed mouse button).
      */
@@ -818,7 +879,7 @@ export default class DocElement {
     getDataSourceParameterName() {
         if (this.hasDataSource()) {
             const dataSource = this.getValue('dataSource').trim();
-            if (dataSource.length >= 3 && dataSource.substr(0, 2) === '${' &&
+            if (dataSource.length >= 3 && dataSource.substring(0, 2) === '${' &&
                     dataSource.charAt(dataSource.length - 1) === '}') {
                 return dataSource.substring(2, dataSource.length - 1);
             }
@@ -1065,15 +1126,15 @@ export default class DocElement {
     }
 
     toJS() {
-        let ret = { elementType: this.getElementType() };
-        for (let field of this.getFields()) {
+        const rv = { elementType: this.getElementType() };
+        for (const field of this.getFields()) {
             if (['x', 'y', 'width', 'height'].indexOf(field) === -1) {
-                ret[field] = this.getValue(field);
+                rv[field] = this.getValue(field);
             } else {
-                ret[field] = this.getValue(field + 'Val');
+                rv[field] = this.getValue(field + 'Val');
             }
         }
-        return ret;
+        return rv;
     }
 }
 
@@ -1087,7 +1148,9 @@ DocElement.type = {
     tableText: 'table_text',
     barCode: 'bar_code',
     frame: 'frame',
-    section: 'section'
+    section: 'section',
+    watermarkText: 'watermark_text',
+    watermarkImage: 'watermark_image',
 };
 
 DocElement.dragType = {

@@ -84,7 +84,7 @@ export default class TableElement extends DocElement {
         }
         let bandElement = new TableBandElement(dataId, data, band, this.rb);
         this.rb.addDataObject(bandElement);
-        let panelItemBand = new MainPanelItem('table_band', this.panelItem, bandElement, panelItemProperties, this.rb);
+        let panelItemBand = new MainPanelItem('tableBand', this.panelItem, bandElement, panelItemProperties, this.rb);
         bandElement.setPanelItem(panelItemBand);
         this.panelItem.appendChild(panelItemBand);
         bandElement.setup();
@@ -246,7 +246,7 @@ export default class TableElement extends DocElement {
     getProperties() {
         return [
             'x', 'y', 'dataSource', 'columns', 'header', 'contentRows', 'footer',
-            'border', 'borderColor', 'borderWidth',
+            'styleId', 'border', 'borderColor', 'borderWidth',
             'printIf', 'removeEmptyElement',
             'spreadsheet_hide', 'spreadsheet_column', 'spreadsheet_addEmptyRow'
         ];
@@ -565,15 +565,15 @@ export default class TableElement extends DocElement {
     }
 
     toJS() {
-        let ret = super.toJS();
-        ret['headerData'] = this.headerData.toJS();
-        let contentDataRows = [];
+        const rv = super.toJS();
+        rv['headerData'] = this.headerData.toJS();
+        const contentDataRows = [];
         for (let i=0; i < this.contentDataRows.length; i++) {
             contentDataRows.push(this.contentDataRows[i].toJS());
         }
-        ret['contentDataRows'] = contentDataRows;
-        ret['footerData'] = this.footerData.toJS();
-        return ret;
+        rv['contentDataRows'] = contentDataRows;
+        rv['footerData'] = this.footerData.toJS();
+        return rv;
     }
 
     static removeIds(data) {

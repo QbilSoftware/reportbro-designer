@@ -67,7 +67,7 @@ export function setInputDecimal(el) {
     el.addEventListener('keyup', (event) => {
         const val = event.target.value;
         let nvalue = val.reverse().replace(/[^0-9\-\.,]|[\-](?=.)|[\.,](?=[0-9]*[\.,])/g, '').reverse();
-        const className = this.className;
+        const className = event.target.className;
         let pos = className ? className.indexOf('decimalPlaces') : -1;
         if (pos !== -1) {
             pos += 13;
@@ -76,7 +76,7 @@ export function setInputDecimal(el) {
             if (pos2 !== -1) {
                 places = parseInt(className.substring(pos, pos2), 10);
             } else {
-                places = parseInt(className.substr(pos), 10);
+                places = parseInt(className.substring(pos), 10);
             }
             if (!isNaN(places)) {
                 pos = nvalue.indexOf('.');
@@ -304,19 +304,23 @@ export function readImageData(file, loadCallback, rb) {
 /**
  * Populate option tags for all available styles.
  * @param {Element} elStyle - dom element of the styles drop down. If there are existing options they will be removed.
+ * @param {String} styleType - if set then only styles which match the given type will be populated, e.g.
+ * a text properties panel should only should text styles.
  * @param {?String} selectedValue - selected style id, if set it is used to set the option for this style as selected.
  * @param {ReportBro} rb - ReportBro instance.
  */
-export function populateStyleSelect(elStyle, selectedValue, rb) {
+export function populateStyleSelect(elStyle, styleType, selectedValue, rb) {
     const styles = rb.getStyles();
     emptyElement(elStyle);
     elStyle.append(createElement('option', { value: '' }, rb.getLabel('styleNone')));
     for (let style of styles) {
-        const option = createElement('option', { value: style.getId() }, style.getName());
-        if (selectedValue && selectedValue === String(style.getId())) {
-            option.selected = true;
+        if (!styleType || style.getValue('type') === styleType) {
+            const option = createElement('option', { value: style.getId() }, style.getName());
+            if (selectedValue && selectedValue === String(style.getId())) {
+                option.selected = true;
+            }
+            elStyle.append(option);
         }
-        elStyle.append(option);
     }
 }
 
@@ -386,7 +390,7 @@ export function tokenize(input, obj) {
             // * field: used to reference object field value
             let word = '';
 
-            while (scanner < input.length && /[a-zA-Z0-9]/.test(input[scanner])) {
+            while (scanner < input.length && /[a-zA-Z0-9_]/.test(input[scanner])) {
                 word += input[scanner++];
             }
 
@@ -394,13 +398,13 @@ export function tokenize(input, obj) {
                 tokens.push(new Token(true, Token.type.boolean));
             } else if (word === 'false') {
                 tokens.push(new Token(false, Token.type.boolean));
-            } else if (word === 'type') {
+            } else if (word === 'docElementType') {
                 if (obj !== null) {
                     // insert object type as string
                     tokens.push(new Token(obj.getElementType(), Token.type.string));
                 } else {
                     // add string placeholder for object type
-                    tokens.push(new Token('type', Token.type.string));
+                    tokens.push(new Token('', Token.type.string));
                 }
             } else {
                 if (obj === null) {
@@ -410,11 +414,11 @@ export function tokenize(input, obj) {
                     // get object field value by field name and set value for token
                     const val = obj.getValue(word);
                     let tokenType;
-                    if (val instanceof Number) {
+                    if (typeof val === 'number') {
                         tokenType = Token.type.number;
-                    } else if (val instanceof String) {
+                    } else if (typeof val === 'string') {
                         tokenType = Token.type.string;
-                    } else if (val instanceof Boolean) {
+                    } else if (typeof val === 'boolean') {
                         tokenType = Token.type.boolean;
                     } else {
                         tokenType = Token.type.undefined;

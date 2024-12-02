@@ -88,7 +88,7 @@ export default class SectionElement extends DocElement {
         let bandElement = new SectionBandElement(dataId, data, bandType, this.rb);
         this.rb.addDataObject(bandElement);
         let panelItemBand = new MainPanelItem(
-            'section_band', this.panelItem, bandElement, panelItemProperties, this.rb);
+            'sectionBand', this.panelItem, bandElement, panelItemProperties, this.rb);
         bandElement.setPanelItem(panelItemBand);
         this.panelItem.appendChild(panelItemBand);
         bandElement.setup();
@@ -405,6 +405,13 @@ export default class SectionElement extends DocElement {
         return true;
     }
 
+    addChildren(docElements) {
+        docElements.push(this.headerData);
+        docElements.push(this.contentData);
+        docElements.push(this.footerData);
+        // children of section bands will be added through linked containers of section
+    }
+
     /**
      * Adds SetValue commands to command group parameter in case the specified parameter is used in any of
      * the object fields.
@@ -418,11 +425,11 @@ export default class SectionElement extends DocElement {
     }
 
     toJS() {
-        let ret = super.toJS();
-        ret['headerData'] = this.headerData.toJS();
-        ret['contentData'] = this.contentData.toJS();
-        ret['footerData'] = this.footerData.toJS();
-        return ret;
+        const rv = super.toJS();
+        rv['headerData'] = this.headerData.toJS();
+        rv['contentData'] = this.contentData.toJS();
+        rv['footerData'] = this.footerData.toJS();
+        return rv;
     }
 
     /**

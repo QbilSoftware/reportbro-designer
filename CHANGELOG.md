@@ -1,5 +1,42 @@
 # Changelog
 
+## [3.9.2] - 2024-10-07
+
+### Features
+* Add option for watermark elements to show in foreground
+
+### Changes
+* Do not restrict watermark elements to page boundaries
+* Do not allow to delete default parameters "page_count" and "page_number"
+
+### Bug Fixes
+* Fix error on xlsx download
+* Fix deleting watermark element
+* Fix validating decimal input value in test data popup
+
+## [3.9.1] - 2024-08-28
+
+### Bug Fixes
+* Fix rendering style select
+
+## [3.9.0] - 2024-08-27
+
+### Features
+* Add text and image watermarks with rotation and transparency (PLUS version)
+* Support styles for various element types
+
+## [3.8.0] - 2024-05-23
+
+### Features
+* Support background color for section bands
+* Options to set spreadsheet cell type and pattern
+
+### Changes
+* Allow custom parameters in reportServerUrl
+
+### Bug Fixes
+* Fix deleting table row
+
 ## [3.7.0] - 2024-02-09
 
 ### Features

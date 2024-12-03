@@ -2,12 +2,16 @@ import Style from '../data/Style';
 import DocElement from '../elements/DocElement';
 import TableTextElement from '../elements/TableTextElement';
 import * as utils from '../utils';
-
+import ReportBro from '../ReportBro';
 /**
  * The menu panel contains all menu buttons.
  * @class
  */
 export default class MenuPanel {
+    /**
+     * @param {HTMLElement} rootElement - The root DOM element for the menu panel.
+     * @param {ReportBro} rb - An instance of the ReportBro class.
+     */
     constructor(rootElement, rb) {
         this.rootElement = rootElement;
         this.rb = rb;
@@ -338,6 +342,71 @@ export default class MenuPanel {
         });
         elElementsDiv.append(elMenuElement);
 
+        
+        elMenuElement = utils.createElement(
+            'div', {
+                id: 'rbro_menu_element_default_font',
+                class: 'rbroButton rbroMenuButton',
+                draggle: 'true',
+                title: this.rb.getLabel('docElementDefaultFont')
+            }
+        );
+        
+        let select = utils.createElement(
+            'select', {
+                class: ' ',
+            }
+        );
+        
+        for (let font of this.rb.getFonts()) {
+            const optionElement = utils.createElement('option', { value: font.value }, font.name);
+            if (font.value === this.rb.getProperty('defaultFont')) {
+                optionElement.setAttribute('selected', 'selected'); // Set as default
+            }
+            select.append(optionElement);
+        }
+        
+        select.addEventListener('change', (event) => {
+            const val = select.value;
+            this.rb.setProperty('defaultFont', val);
+        });
+        
+        elMenuElement.append(select);
+        elElementsDiv.append(elMenuElement);
+        
+        elMenuElement = utils.createElement(
+            'div', {
+                id: 'rbro_menu_element_default_font',
+                class: 'rbroButton rbroMenuButton',
+                draggle: 'true',
+                title: this.rb.getLabel('docElementDefaultFontSize')
+            }
+        );
+        
+        let selectFontSize = utils.createElement(
+            'select', {
+                class: ' ',
+            }
+        );
+        
+        for (let fontSize of this.rb.getProperty('fontSizes')) {
+            const optionElementFontSize = utils.createElement('option', { value: fontSize }, fontSize);
+            if (optionElementFontSize.value == this.rb.getProperty('defaultFontSize')) {
+                optionElementFontSize.setAttribute('selected', 'selected'); // Set as default
+            }
+            selectFontSize.append(optionElementFontSize);
+        }
+        
+        selectFontSize.addEventListener('change', (event) => {
+            const val = selectFontSize.value;
+            this.rb.setProperty('defaultFontSize', val);
+        });
+        
+        elMenuElement.append(selectFontSize);
+        elMenuElement.append(utils.createElement('span', {}, this.rb.getLabel('styleFontSizeUnit')));
+        elElementsDiv.append(elMenuElement);
+        
+        
         panelRight.append(elElementsDiv);
 
         let elActionsDiv = utils.createElement('div', { class: 'rbroActionButtons' });

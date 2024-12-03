@@ -59,6 +59,7 @@ export default class ReportBro {
             defaultFont: Style.font.helvetica,
             enableSpreadsheet: true,
             fontSizes: [4,5,6,7,8,9,10,11,12,13,14,15,16,18,20,22,24,26,28,32,36,40,44,48,54,60,66,72,80],
+            defaultFontSize: 12,
             fonts: [
                 { name: 'Courier', value: Style.font.courier },
                 { name: 'Helvetica', value: Style.font.helvetica },
@@ -612,6 +613,16 @@ export default class ReportBro {
             return this.locale[key];
         }
         return key;
+    }
+
+    /**
+     * Set ReportBro property.
+     * @param {String} key - property name
+     * @param {any} value - property name
+     * @returns {*}
+     */
+    setProperty(key,value) {
+        this.properties[key] = value;
     }
 
     /**

@@ -29,7 +29,9 @@
   "main": "dist/reportbro.js",
   "scripts": {
     "build": "webpack",
-    "build-prod": "webpack --config webpack.config.prod.js"
+    "build-prod": "webpack --config webpack.config.prod.js",
+    "watch": "webpack --watch --mode development",
+    "start": "webpack serve --mode development"
   },
   "dependencies": {
     "@babel/preset-env": "^7.17.12",

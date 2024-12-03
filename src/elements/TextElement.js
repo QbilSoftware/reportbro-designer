@@ -2,6 +2,8 @@ import DocElement from './DocElement';
 import SetValueCmd from '../commands/SetValueCmd';
 import Style from '../data/Style';
 import * as utils from '../utils';
+import getSanitizedTestDataValue from '../data/Parameter'
+import Parameter from '../data/Parameter';
 
 /**
  * Text doc element.
@@ -30,7 +32,7 @@ export default class TextElement extends DocElement {
         this.textColor = '#000000';
         this.backgroundColor = '';
         this.font = rb.getProperty('defaultFont');
-        this.fontSize = 12;
+        this.fontSize = rb.getProperty('defaultFontSize');
         this.lineSpacing = 1;
         this.borderColor = '#000000';
         this.borderWidth = '1';
@@ -317,7 +319,8 @@ export default class TextElement extends DocElement {
         const elMenuItemName = document.getElementById(`rbro_menu_item_name${this.id}`);
         elMenuItemName.textContent = this.name;
         elMenuItemName.setAttribute('title', this.name);
-        this.elContentTextData.textContent = value;
+    
+        this.elContentTextData.textContent = this.replacePlaceholders(value) ;
     }
 
     updateRichTextContent(delta) {
@@ -392,4 +395,19 @@ export default class TextElement extends DocElement {
     getClassName() {
         return 'TextElement';
     }
+
+    replacePlaceholders(template) {
+        return template.replace(/\$\{([^\}]+)\}/g, (_, key) => {
+          const keys = key.split('.'); // Split nested keys
+          let value =  this.rb.getTestData();
+          for (const k of keys) {
+            value = value[k]; // Traverse the object
+            if (value === undefined){
+                // return originalTempalte
+                return `\$\{${key}\}`;
+            } // Return empty if key not found
+          }
+          return value;
+        });
+      }
 }

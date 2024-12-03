@@ -28,7 +28,7 @@ export default class Style {
         this.backgroundColor = '';
         this.alternateBackgroundColor = '';
         this.font = rb.getProperty('defaultFont');
-        this.fontSize = 12;
+        this.fontSize = rb.getProperty('defaultFontSize');
         this.lineSpacing = 1;
         this.border = 'grid';
         this.borderColor = '#000000';

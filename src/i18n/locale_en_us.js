@@ -26,6 +26,8 @@ const locale_en = {
     docElementContent: 'Text',
     docElementContentRows: 'Content rows',
     docElementDataSource: 'Data source',
+    docElementDefaultFont: 'Default Font',
+    docElementDefaultFontSize: 'Default Font Size',
     docElementDisplayValue: 'Display value',
     docElementEditMultipleSelectionNotSupported: 'Edit multiple selection is not supported for this setting',
     docElementErrorCorrectionLevel: 'Error correction',

@@ -402,7 +402,7 @@ export default class TextElement extends DocElement {
           let value =  this.rb.getTestData();
           for (const k of keys) {
             value = value[k]; // Traverse the object
-            if (value === undefined){
+            if (value === undefined || value == null || value == ''){
                 // return originalTempalte
                 return `\$\{${key}\}`;
             } // Return empty if key not found

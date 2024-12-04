@@ -28,6 +28,7 @@ import MainPanel from './menu/MainPanel';
 import MainPanelItem from './menu/MainPanelItem';
 import MenuPanel from './menu/MenuPanel';
 import * as utils from './utils';
+import TextElement from './elements/TextElement';
 
 /**
  * Used for the main ReportBro instance.
@@ -1136,6 +1137,9 @@ export default class ReportBro {
         if (obj !== null) {
             if (obj instanceof DocElement) {
                 detailPanel = 'docElement';
+                if(obj instanceof TextElement){
+                    obj.elContentTextData.textContent = obj.getName()
+                }
             } else if (obj instanceof Parameter) {
                 detailPanel = 'parameter';
             } else if (obj instanceof Style) {
@@ -1172,6 +1176,9 @@ export default class ReportBro {
     deselectObjectInternal(id, updateSelections) {
         let obj = this.getDataObject(id);
         if (obj !== null) {
+            if(obj instanceof TextElement){
+                obj.elContentTextData.textContent = obj.replacePlaceholders(obj.elContentTextData.textContent)
+            }
             obj.deselect();
             if (obj.getPanelItem() !== null) {
                 obj.getPanelItem().setInactive();

@@ -320,7 +320,7 @@ export default class TextElement extends DocElement {
         elMenuItemName.textContent = this.name;
         elMenuItemName.setAttribute('title', this.name);
     
-        this.elContentTextData.textContent = this.replacePlaceholders(value) ;
+        this.elContentTextData.textContent = TextElement.replacePlaceholders(this.rb,value) ;
     }
 
     updateRichTextContent(delta) {
@@ -396,12 +396,16 @@ export default class TextElement extends DocElement {
         return 'TextElement';
     }
 
-    replacePlaceholders(template) {
+   static replacePlaceholders(rb,template) {
         return template.replace(/\$\{([^\}]+)\}/g, (_, key) => {
           const keys = key.split('.'); // Split nested keys
-          let value =  this.rb.getTestData();
+          let value =  rb.getTestData();
+        //   debugger
           for (const k of keys) {
             value = value[k]; // Traverse the object
+            if(value instanceof Array && value.length > 0){
+                value = value[0]
+            }
             if (value === undefined || value == null || value == ''){
                 // return originalTempalte
                 return `\$\{${key}\}`;

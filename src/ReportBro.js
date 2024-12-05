@@ -1177,7 +1177,14 @@ export default class ReportBro {
         let obj = this.getDataObject(id);
         if (obj !== null) {
             if(obj instanceof TextElement){
-                obj.elContentTextData.textContent = obj.replacePlaceholders(obj.elContentTextData.textContent)
+                let parameterName =  obj.elContentTextData.textContent
+                let datasourcesIf = obj.rb.getDocElementById(obj.id).getAllDataSources()
+                if(datasourcesIf.length>0){
+                    let name = datasourcesIf[0].name
+                    parameterName = parameterName.replace(/\$\{/, `\${${name}.`)
+
+                }
+                obj.elContentTextData.textContent = TextElement.replacePlaceholders(obj.rb,parameterName)
             }
             obj.deselect();
             if (obj.getPanelItem() !== null) {

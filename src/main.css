@@ -1558,3 +1558,10 @@ ul.tree>li::before {
 .mooLogoWhite {
     background-image: url("moo_logo_white.png");
 }
+.rbroPopupWindowContentTreeMode ul li span {
+    font-size: small;
+    font-family: 'Courier New', Courier, monospace;
+    padding-left: 30px;
+
+}
+

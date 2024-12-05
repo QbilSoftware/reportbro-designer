@@ -3,6 +3,7 @@ import Parameter from './data/Parameter';
 import DocElement from './elements/DocElement';
 import * as utils from './utils';
 import autosize from 'autosize';
+import TextElement from './elements/TextElement';
 
 /**
  * Popup window to show selectable items (parameters, patterns, etc.) or to edit test data for array parameter.
@@ -353,6 +354,40 @@ export default class PopupWindow {
             if (item.description && item.description !== '') {
                 li.append(utils.createElement('div', { class: 'rbroPopupItemDescription' }, item.description));
             }
+            let itemName = `\${${item.name}}`;
+
+            let currentItem = this.rb.getParameterById(item.id);
+            
+            if (currentItem) {
+                let parentChain = [];
+                
+                // Traverse the parent chain until a non-array/map parent is found
+                while (currentItem.getParent() && ['array', 'map'].includes(currentItem.getParent().type)) {
+                    parentChain.unshift(currentItem.getParent().name); // Add parent name to the beginning of the array
+                    currentItem = currentItem.getParent();
+                }
+            
+                if (parentChain.length > 0) {           
+                    const itemNames = item.name.split('.');
+                    
+                    // Remove any parent names that are already in the item's name
+                    parentChain = parentChain.filter(parent => !itemNames.includes(parent));
+            
+                    if (parentChain.length > 0) {
+                        itemName = `\${${parentChain.join('.') + '.' + item.name}}`;
+                    }
+                }
+            }
+            
+
+            if(!item.separator){
+
+                let testData = TextElement.replacePlaceholders(this.rb,itemName)
+                li.append(
+                    utils.createElement('span',{},testData)
+                )
+            }
+
             ul.append(li);
 
         }
@@ -907,7 +942,8 @@ export default class PopupWindow {
                         currentGroupId = item.id ? item.id : null;
                         groupCount = 0;
                     } else {
-                        if (item.nameLowerCase.indexOf(searchVal) !== -1) {
+                        const itemSpan = document.querySelector('#parameter_' + item.id + ' span');
+                        if (item.nameLowerCase.indexOf(searchVal) !== -1 || itemSpan.textContent.toLowerCase().indexOf(searchVal) !== -1 ) {
                             document.getElementById('parameter_' + item.id).style.display = 'block';
                             this.setDisplayForParentDetailsElementsById(document.getElementById('parameter_' + item.id))
                             if (currentGroupId !== -1) {
@@ -977,6 +1013,35 @@ export default class PopupWindow {
             currentElement = currentElement.parentElement;
         }
     }
+
+    static  getFormattedItemName(parameter) {
+        let itemName = `\${${parameter.name}}`;
+    
+        let currentItem = parameter;
+    
+        if (currentItem) {
+            let parentChain = [];
+    
+            // Traverse the parent chain until a non-array/map parent is found
+            while (currentItem.getParent() && ['array', 'map'].includes(currentItem.getParent().type)) {
+                parentChain.unshift(currentItem.getParent().name); // Add parent name to the beginning of the array
+                currentItem = currentItem.getParent();
+            }
+    
+            if (parentChain.length > 0) {
+                const itemNames = item.name.split('.');
+    
+                // Remove any parent names that are already in the item's name
+                parentChain = parentChain.filter(parent => !itemNames.includes(parent));
+    
+                if (parentChain.length > 0) {
+                    itemName = `\${${parentChain.join('.') + '.' + item.name}}`;
+                }
+            }
+        }
+    
+        return itemName;
+    }
 }
 
 PopupWindow.type = {
@@ -985,3 +1050,4 @@ PopupWindow.type = {
     pattern: 2,
     data: 3
 };
+

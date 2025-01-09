@@ -78,7 +78,7 @@ export default class PopupWindow {
      * only required when "type" is PopupWindow.type.data and
      * *parameter* is null (when parameter is available data will be retrieved from parameter test data).
      */
-    show(items, objId, tagId, field, type, quill, parameter, rootDataType, fields, data) {
+     show(items, objId, tagId, field, type, quill, parameter, rootDataType, fields, data) {
         let winWidth = window.innerWidth;
         let winHeight = window.innerHeight;
         let elSearch = null;
@@ -239,7 +239,7 @@ export default class PopupWindow {
             autosize.update(elTextarea);
         }
     }
-    createNestedList(container, data, type, quill, input) {
+     createNestedList(container, data, type, quill, input) {
         this.type = type;
         this.input = input;
         let quillSelectionRange = null;
@@ -380,15 +380,25 @@ export default class PopupWindow {
             }
             
 
-            if(!item.separator){
-
-                let testData = TextElement.replacePlaceholders(this.rb,itemName)
-                li.append(
-                    utils.createElement('span',{},testData)
-                )
+            if (!item.separator) {
+                const placeholder = utils.createElement('span', {}, 'Loading...');
+                li.append(placeholder);
+                ul.append(li);
+            
+                // Use setTimeout to defer the async operation slightly
+                setTimeout(() => {
+                    TextElement.replacePlaceholders(this.rb, itemName).then((testData) => {
+                        placeholder.textContent = testData;
+                    }).catch((error) => {
+                        console.error('Error fetching testData:', error);
+                        placeholder.textContent = 'Failed to load'; // Optionally show an error message
+                    });
+                }, 0); // Defer the async call by 0ms to let the event loop process the initial DOM update first
             }
-
-            ul.append(li);
+            
+            else{
+                ul.append(li);
+            }
 
         }
     }

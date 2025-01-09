@@ -1216,7 +1216,9 @@ export default class ReportBro {
                     parameterName = parameterName.replace(/\$\{/, `\${${name}.`)
 
                 }
-                obj.elContentTextData.textContent = TextElement.replacePlaceholders(obj.rb,parameterName)
+                 TextElement.replacePlaceholders(obj.rb,parameterName).then((res)=>{
+                    obj.elContentTextData.textContent = res
+                });
             }
             obj.deselect();
             if (obj.getPanelItem() !== null) {
